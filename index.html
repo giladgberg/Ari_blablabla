@@ -26,7 +26,7 @@ canvas {
   display: block;
 }
 #sidebar {
-  width: 160px;
+  width: 180px;
   background: rgba(0,20,0,0.9);
   border: 2px solid #0f0;
   border-left: none;
@@ -44,13 +44,16 @@ canvas {
 }
 .weapon-slot {
   border: 2px solid #333;
-  padding: 8px;
+  padding: 6px;
   cursor: pointer;
   border-radius: 4px;
   font-size: 11px;
   text-align: center;
   transition: all 0.2s;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .weapon-slot.active {
   border-color: #0f0;
@@ -68,6 +71,12 @@ canvas {
   font-size: 9px;
   color: #888;
 }
+.weapon-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.weapon-info { text-align: left; }
 .weapon-name { font-weight: bold; margin-bottom: 2px; }
 .weapon-desc { font-size: 9px; color: #888; }
 #controls-info {
@@ -200,7 +209,7 @@ initStars();
 
 // Player
 const player = {
-  x: W / 2, y: H - 80, w: 40, h: 45, speed: 4, hp: 5, maxHp: 5,
+  x: W / 2, y: H - 100, w: 55, h: 65, speed: 4, hp: 5, maxHp: 5,
   invincible: 0, animFrame: 0,
 };
 
@@ -231,13 +240,82 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
 // ============ WEAPON SIDEBAR ============
+function drawWeaponIcon(canvas, type, color) {
+  const c = canvas.getContext('2d');
+  const s = 36;
+  c.clearRect(0, 0, s, s);
+  c.save();
+  c.translate(s/2, s/2);
+  switch (type) {
+    case 'gas':
+      c.fillStyle = 'rgba(80,160,40,0.9)';
+      c.fillRect(-2, -8, 4, 14);
+      c.fillStyle = 'rgba(120,220,60,0.9)';
+      c.beginPath(); c.arc(0, -8, 4, 0, Math.PI*2); c.fill();
+      c.fillStyle = 'rgba(100,200,50,0.4)';
+      c.beginPath(); c.arc(-2, -13, 2.5, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(2, -12, 2, 0, Math.PI*2); c.fill();
+      break;
+    case 'sonic':
+      c.fillStyle = 'rgba(40,100,200,0.9)';
+      c.fillRect(-3, -8, 6, 16);
+      c.fillStyle = 'rgba(50,150,255,0.9)';
+      c.fillRect(-5, -12, 10, 5);
+      c.strokeStyle = 'rgba(100,200,255,0.7)';
+      c.lineWidth = 1.5;
+      c.beginPath(); c.arc(0, -12, 6, Math.PI, 0); c.stroke();
+      break;
+    case 'stink':
+      c.fillStyle = 'rgba(120,70,30,0.9)';
+      c.fillRect(-4, -6, 8, 14);
+      c.fillStyle = 'rgba(139,90,43,0.9)';
+      c.beginPath(); c.arc(0, -6, 6, 0, Math.PI*2); c.fill();
+      c.strokeStyle = 'rgba(100,60,20,0.5)';
+      c.lineWidth = 1;
+      c.beginPath(); c.moveTo(-2, -13); c.lineTo(-4, -16); c.stroke();
+      c.beginPath(); c.moveTo(0, -13); c.lineTo(0, -17); c.stroke();
+      c.beginPath(); c.moveTo(2, -13); c.lineTo(4, -16); c.stroke();
+      break;
+    case 'toxic':
+      c.fillStyle = 'rgba(120,30,180,0.9)';
+      c.fillRect(-2, -8, 4, 16);
+      c.fillStyle = 'rgba(180,50,255,0.9)';
+      c.beginPath();
+      c.moveTo(-5, -8); c.lineTo(5, -8); c.lineTo(2, -14); c.lineTo(-2, -14);
+      c.closePath(); c.fill();
+      c.fillStyle = 'rgba(180,50,255,0.4)';
+      c.beginPath(); c.arc(0, -14, 3, 0, Math.PI*2); c.fill();
+      break;
+  }
+  c.restore();
+}
+
 function renderWeaponSidebar() {
   const container = document.getElementById('weaponSlots');
   container.innerHTML = '';
   WEAPONS.forEach((w, i) => {
     const div = document.createElement('div');
     div.className = 'weapon-slot' + (i === currentWeapon ? ' active' : '') + (!w.unlocked ? ' locked' : '');
-    div.innerHTML = `<span class="key">${i+1}</span><div class="weapon-name" style="color:${w.color}">${w.name}</div><div class="weapon-desc">${w.unlocked ? w.desc : '???'}</div>`;
+
+    // Weapon icon canvas
+    const iconCanvas = document.createElement('canvas');
+    iconCanvas.width = 36;
+    iconCanvas.height = 36;
+    iconCanvas.className = 'weapon-icon';
+    if (w.unlocked) drawWeaponIcon(iconCanvas, w.bulletType, w.color);
+
+    // Info section
+    const info = document.createElement('div');
+    info.className = 'weapon-info';
+    info.innerHTML = `<div class="weapon-name" style="color:${w.color}">${w.name}</div><div class="weapon-desc">${w.unlocked ? w.desc : '???'}</div>`;
+
+    const keySpan = document.createElement('span');
+    keySpan.className = 'key';
+    keySpan.textContent = i + 1;
+
+    div.appendChild(iconCanvas);
+    div.appendChild(info);
+    div.appendChild(keySpan);
     if (w.unlocked) div.onclick = () => { currentWeapon = i; renderWeaponSidebar(); };
     container.appendChild(div);
   });
@@ -253,7 +331,7 @@ function startGame() {
   currentWeapon = 0;
   player.hp = player.maxHp;
   player.x = W / 2;
-  player.y = H - 80;
+  player.y = H - 100;
   player.invincible = 0;
   bullets = [];
   enemies = [];
@@ -662,7 +740,7 @@ function playerHit() {
     } else {
       player.hp = player.maxHp;
       player.x = W / 2;
-      player.y = H - 80;
+      player.y = H - 100;
     }
   }
 }
@@ -819,70 +897,173 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(p.x, p.y);
 
+  const wobble = Math.sin(p.animFrame * 0.1) * 2;
+  const breathe = Math.sin(p.animFrame * 0.05) * 1.5;
+
   // Shield visual
   if (shieldTimer > 0) {
     ctx.strokeStyle = 'rgba(0,255,255,0.5)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(0, 0, 30, 0, Math.PI * 2);
+    ctx.arc(0, 0, 42, 0, Math.PI * 2);
     ctx.stroke();
   }
 
   // Speed boost visual
   if (speedBoostTimer > 0) {
-    ctx.fillStyle = 'rgba(255,255,0,0.2)';
+    ctx.fillStyle = 'rgba(255,255,0,0.15)';
     ctx.beginPath();
-    ctx.arc(0, 5, 25, 0, Math.PI * 2);
+    ctx.arc(0, 8, 38, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Body - green gas cloud (view from behind)
-  const wobble = Math.sin(p.animFrame * 0.1) * 2;
+  // === GAS TRAIL (bottom, behind the hero) ===
+  ctx.fillStyle = 'rgba(100,255,100,0.12)';
+  ctx.beginPath(); ctx.arc(-5 + wobble, 30, 10, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(6 - wobble, 34, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0 + wobble * 0.5, 38, 6, 0, Math.PI * 2); ctx.fill();
 
-  // Main body cloud
-  ctx.fillStyle = 'rgba(50,180,50,0.6)';
+  // === BODY (back view - large gas cloud torso) ===
+  // Outer glow
+  ctx.fillStyle = 'rgba(40,160,40,0.2)';
   ctx.beginPath();
-  ctx.arc(0, 0, 18 + wobble * 0.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Darker inner cloud
-  ctx.fillStyle = 'rgba(30,140,30,0.7)';
-  ctx.beginPath();
-  ctx.arc(0, 2, 13, 0, Math.PI * 2);
+  ctx.arc(0, 0, 30 + breathe, 0, Math.PI * 2);
   ctx.fill();
 
-  // Top wisps (facing away from viewer)
-  ctx.fillStyle = 'rgba(80,220,80,0.4)';
+  // Main body mass
+  ctx.fillStyle = 'rgba(50,180,50,0.55)';
   ctx.beginPath();
-  ctx.arc(-8 + wobble, -12, 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(8 - wobble, -10, 7, 0, Math.PI * 2);
+  ctx.arc(0, 2, 25 + breathe * 0.5, 0, Math.PI * 2);
   ctx.fill();
 
-  // Side wisps
-  ctx.fillStyle = 'rgba(60,200,60,0.3)';
+  // Darker core
+  ctx.fillStyle = 'rgba(30,140,30,0.65)';
   ctx.beginPath();
-  ctx.arc(-15 + wobble, 2, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(15 - wobble, 4, 5, 0, Math.PI * 2);
+  ctx.arc(0, 3, 18, 0, Math.PI * 2);
   ctx.fill();
 
-  // Trail behind (bottom = towards viewer = back trail)
-  ctx.fillStyle = 'rgba(100,255,100,0.2)';
+  // === SHOULDERS (left and right bulges) ===
+  ctx.fillStyle = 'rgba(50,180,50,0.5)';
   ctx.beginPath();
-  ctx.arc(-3 + wobble, 15, 7, 0, Math.PI * 2);
+  ctx.arc(-20 + wobble * 0.5, -2, 12 + breathe * 0.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(4 - wobble, 18, 5, 0, Math.PI * 2);
+  ctx.arc(20 - wobble * 0.5, -2, 12 + breathe * 0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Highlight glow
-  ctx.fillStyle = 'rgba(150,255,150,0.3)';
+  // === HEAD (seen from back - round gas puff on top) ===
+  // Head base
+  ctx.fillStyle = 'rgba(60,200,60,0.6)';
   ctx.beginPath();
-  ctx.arc(-3, -5, 6, 0, Math.PI * 2);
+  ctx.arc(0, -20, 14 + breathe * 0.3, 0, Math.PI * 2);
   ctx.fill();
+
+  // Head inner
+  ctx.fillStyle = 'rgba(40,160,40,0.7)';
+  ctx.beginPath();
+  ctx.arc(0, -20, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Head wispy top (hair-like gas)
+  ctx.fillStyle = 'rgba(80,230,80,0.35)';
+  ctx.beginPath(); ctx.arc(-6 + wobble, -30, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(6 - wobble, -28, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -32, 4, 0, Math.PI * 2); ctx.fill();
+
+  // Back detail - spine-like line
+  ctx.strokeStyle = 'rgba(30,120,30,0.3)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -10);
+  ctx.quadraticCurveTo(wobble * 0.5, 5, 0, 18);
+  ctx.stroke();
+
+  // Side wisps (floating gas around body)
+  ctx.fillStyle = 'rgba(70,210,70,0.2)';
+  ctx.beginPath(); ctx.arc(-25 + wobble, 8, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(25 - wobble, 10, 5, 0, Math.PI * 2); ctx.fill();
+
+  // === WEAPON (held in right hand/arm area) ===
+  drawPlayerWeapon(wobble);
+
+  // Highlight glow on shoulder
+  ctx.fillStyle = 'rgba(150,255,150,0.25)';
+  ctx.beginPath();
+  ctx.arc(-8, -12, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawPlayerWeapon(wobble) {
+  const weapon = WEAPONS[currentWeapon];
+  // Weapon is held on the right side, extending forward (upward)
+  const wx = 18 - wobble * 0.3; // right arm area
+  const wy = -8;
+
+  ctx.save();
+  ctx.translate(wx, wy);
+
+  switch (weapon.bulletType) {
+    case 'gas':
+      // Air Fart gun - a small nozzle/tube
+      ctx.fillStyle = 'rgba(80,160,40,0.9)';
+      ctx.fillRect(-3, -18, 6, 18);
+      // Nozzle tip
+      ctx.fillStyle = 'rgba(120,220,60,0.9)';
+      ctx.beginPath(); ctx.arc(0, -18, 5, 0, Math.PI * 2); ctx.fill();
+      // Gas wisps at tip
+      ctx.fillStyle = 'rgba(100,200,50,0.3)';
+      ctx.beginPath(); ctx.arc(-2 + wobble * 0.5, -24, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2 - wobble * 0.5, -22, 2, 0, Math.PI * 2); ctx.fill();
+      break;
+
+    case 'sonic':
+      // Sonic Boom cannon - wider barrel with rings
+      ctx.fillStyle = 'rgba(40,100,200,0.9)';
+      ctx.fillRect(-4, -20, 8, 20);
+      // Wide barrel end
+      ctx.fillStyle = 'rgba(50,150,255,0.9)';
+      ctx.fillRect(-6, -24, 12, 6);
+      // Ring detail
+      ctx.strokeStyle = 'rgba(100,200,255,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, -24, 7, Math.PI, 0); ctx.stroke();
+      break;
+
+    case 'stink':
+      // Stink Bomb launcher - chubby barrel
+      ctx.fillStyle = 'rgba(120,70,30,0.9)';
+      ctx.fillRect(-5, -16, 10, 16);
+      // Fat bomb chamber
+      ctx.fillStyle = 'rgba(139,90,43,0.9)';
+      ctx.beginPath(); ctx.arc(0, -16, 7, 0, Math.PI * 2); ctx.fill();
+      // Stink lines
+      ctx.strokeStyle = 'rgba(100,60,20,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-3, -24); ctx.lineTo(-5, -28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -24); ctx.lineTo(0, -29); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(3, -24); ctx.lineTo(5, -28); ctx.stroke();
+      break;
+
+    case 'toxic':
+      // Toxic Cloud sprayer - sleek with purple glow
+      ctx.fillStyle = 'rgba(120,30,180,0.9)';
+      ctx.fillRect(-3, -20, 6, 20);
+      // Sprayer head
+      ctx.fillStyle = 'rgba(180,50,255,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(-7, -20);
+      ctx.lineTo(7, -20);
+      ctx.lineTo(3, -26);
+      ctx.lineTo(-3, -26);
+      ctx.closePath();
+      ctx.fill();
+      // Purple glow at tip
+      ctx.fillStyle = 'rgba(180,50,255,0.3)';
+      ctx.beginPath(); ctx.arc(0, -26, 4, 0, Math.PI * 2); ctx.fill();
+      break;
+  }
 
   ctx.restore();
 }
@@ -1145,17 +1326,36 @@ function drawMenu() {
   ctx.fillStyle = '#8f8';
   ctx.fillText('~ Space Fart Shooter ~', W/2, H/2);
 
-  // Draw hero preview
+  // Draw hero preview (back view, zoomed)
   ctx.save();
-  ctx.translate(W/2, H/2 + 60);
+  ctx.translate(W/2, H/2 + 70);
   const w = Math.sin(Date.now() * 0.003) * 3;
-  ctx.fillStyle = 'rgba(50,180,50,0.6)';
-  ctx.beginPath(); ctx.arc(0, 0, 25 + w, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(80,220,80,0.4)';
-  ctx.beginPath(); ctx.arc(-10 + w, -15, 10, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(10 - w, -12, 9, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(100,255,100,0.2)';
-  ctx.beginPath(); ctx.arc(0, 20, 8, 0, Math.PI*2); ctx.fill();
+  // Body
+  ctx.fillStyle = 'rgba(40,160,40,0.2)';
+  ctx.beginPath(); ctx.arc(0, 0, 35 + w, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(50,180,50,0.55)';
+  ctx.beginPath(); ctx.arc(0, 2, 28, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(30,140,30,0.65)';
+  ctx.beginPath(); ctx.arc(0, 3, 20, 0, Math.PI*2); ctx.fill();
+  // Shoulders
+  ctx.fillStyle = 'rgba(50,180,50,0.5)';
+  ctx.beginPath(); ctx.arc(-22 + w*0.3, -2, 13, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(22 - w*0.3, -2, 13, 0, Math.PI*2); ctx.fill();
+  // Head
+  ctx.fillStyle = 'rgba(60,200,60,0.6)';
+  ctx.beginPath(); ctx.arc(0, -22, 15, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(80,230,80,0.35)';
+  ctx.beginPath(); ctx.arc(-6+w, -34, 6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(6-w, -32, 5, 0, Math.PI*2); ctx.fill();
+  // Weapon
+  ctx.fillStyle = 'rgba(80,160,40,0.9)';
+  ctx.fillRect(18, -16, 5, 16);
+  ctx.fillStyle = 'rgba(120,220,60,0.9)';
+  ctx.beginPath(); ctx.arc(20, -16, 4, 0, Math.PI*2); ctx.fill();
+  // Gas trail
+  ctx.fillStyle = 'rgba(100,255,100,0.15)';
+  ctx.beginPath(); ctx.arc(-4+w, 32, 9, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(5-w, 36, 7, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 
   ctx.fillStyle = '#0f0';
